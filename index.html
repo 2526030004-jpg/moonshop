@@ -94,13 +94,13 @@
     </div>
 
     <script>
-        // --- 1. CẤU HÌNH ĐƯỜNG DẪN GOOGLE FORM CỦA BẠN TẠI ĐÂY ---
+        // --- 1. CẤU HÌNH ĐƯỜNG DẪN GOOGLE FORM ---
         const CONFIG = {
-            formId: "1FAIpQLSeUirj34F7WvGelcQwwaIvZ0i8bMFkIU4csl9Wyr3JkfNK68g", // Thay ID Form thật của bạn
-            entryName: "entry.2005620554",      // Thay số ID ô Họ Tên
-            entryPhone: "entry.1045781291",     // Thay số ID ô Số Điện Thoại
-            entryAddress: "entry.1065046570",   // Thay số ID ô Địa Chỉ
-            entryOrder: "entry.1166974658"      // Thay số ID ô Chi Tiết Đơn Hàng
+            formId: "1FAIpQLSeUirj34F7WvGelcQwwaIvZ0i8bMFkIU4csl9Wyr3JkfNK68g", 
+            entryName: "entry.2005620554",      
+            entryPhone: "entry.1045781291",     
+            entryAddress: "entry.1065046570",   
+            entryOrder: "entry.1166974658"      
         };
 
         // --- 2. DỮ LIỆU ĐỦ 24 MÓN ĂN VỚI ẢNH MINH HỌA ---
@@ -131,20 +131,15 @@
             { id: 24, name: "Khoai Tây Chiên Lắc Phô Mai", price: 30000, img: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=400" }
         ];
 
-        // Biến toàn cục quản lý trạng thái
         let filteredFoods = [...foods];
         let currentPage = 1;
         const itemsPerPage = 6;
         let cart = {};
 
-        // --- 3. LOGIC HIỂN THỊ CHỨC NĂNG ---
-
-        // Hiển thị danh sách món ăn lên màn hình
         function renderFoods() {
             const grid = document.getElementById("food-grid");
             grid.innerHTML = "";
 
-            // Tính toán phân trang
             const start = (currentPage - 1) * itemsPerPage;
             const end = start + itemsPerPage;
             const pageItems = filteredFoods.slice(start, end);
@@ -173,7 +168,6 @@
             renderPagination();
         }
 
-        // Tạo nút bấm phân trang
         function renderPagination() {
             const pagination = document.getElementById("pagination");
             pagination.innerHTML = "";
@@ -194,15 +188,12 @@
             }
         }
 
-        // Tự động tìm kiếm thời gian thực (Real-time Search)
         function handleSearch() {
             const keyword = document.getElementById("search-box").value.toLowerCase().trim();
             filteredFoods = foods.filter(food => food.name.toLowerCase().includes(keyword));
-            currentPage = 1; // Khởi động lại về trang 1 khi lọc dữ liệu mới
+            currentPage = 1; 
             renderFoods();
         }
-
-        // --- 4. LOGIC GIỎ HÀNG & ĐẶT HÀNG ---
 
         function addToCart(id) {
             cart[id] = (cart[id] || 0) + 1;
@@ -246,56 +237,49 @@
             document.getElementById("order-modal").style.display = "none";
         }
 
-        // Hàm bí thuật: Gửi ngầm dữ liệu lên Google Form để chuyển tiếp dữ liệu sang Google Sheet
-        function submitToGoogleForm(e) // --- HÀM GỬI DỮ LIỆU ĐÃ ĐƯỢC FIX LỖI CHẶN KẾT NỐI ---
-function submitToGoogleForm(e) {
-    e.preventDefault(); // Ngăn chặn trang web bị tải lại trang tự động khi bấm nút
-    
-    // Thu thập chính xác dữ liệu từ các ô nhập liệu
-    const name = document.getElementById("cus-name").value.trim();
-    const phone = document.getElementById("cus-phone").value.trim();
-    const address = document.getElementById("cus-address").value.trim();
-    const summary = getCartSummaryText();
-    const fullOrderDetails = summary.details + "\n" + summary.totalStr;
+        // Hàm xử lý gửi dữ liệu sạch, chuẩn cấu hình bảo mật
+        function submitToGoogleForm(e) {
+            e.preventDefault(); 
+            
+            const name = document.getElementById("cus-name").value.trim();
+            const phone = document.getElementById("cus-phone").value.trim();
+            const address = document.getElementById("cus-address").value.trim();
+            const summary = getCartSummaryText();
+            const fullOrderDetails = summary.details + "\n" + summary.totalStr;
 
-    if(!name || !phone || !address) {
-        alert("Vui lòng điền đầy đủ các thông tin bắt buộc!");
-        return;
-    }
+            if(!name || !phone || !address) {
+                alert("Vui lòng điền đầy đủ các thông tin bắt buộc!");
+                return;
+            }
 
-    // Đường dẫn API nhận đơn chính thức của Google Form (đuôi phải là /formResponse)
-    const formUrl = `https://docs.google.com/forms/d/e/${CONFIG.formId}/formResponse`;
-    
-    // Giải pháp tối ưu: Đóng gói dữ liệu bằng URLSearchParams để vượt rào bảo mật
-    const searchParams = new URLSearchParams();
-    searchParams.append(CONFIG.entryName, name);
-    searchParams.append(CONFIG.entryPhone, phone);
-    searchParams.append(CONFIG.entryAddress, address);
-    searchParams.append(CONFIG.entryOrder, fullOrderDetails);
+            const formUrl = `https://docs.google.com/forms/d/e/${CONFIG.formId}/formResponse`;
+            
+            const searchParams = new URLSearchParams();
+            searchParams.append(CONFIG.entryName, name);
+            searchParams.append(CONFIG.entryPhone, phone);
+            searchParams.append(CONFIG.entryAddress, address);
+            searchParams.append(CONFIG.entryOrder, fullOrderDetails);
 
-    // Kích hoạt tiến trình gửi ngầm bất đồng bộ bằng Fetch API
-    fetch(formUrl, {
-        method: "POST",
-        mode: "no-cors", // Bắt buộc cài đặt chế độ này để bỏ qua lỗi CORS của trình duyệt
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: searchParams.toString()
-    })
-    .then(() => {
-        // Sau khi gửi thành công, thực hiện chuỗi hành động làm sạch giao diện:
-        alert("🎉 ĐẶT HÀNG THÀNH CÔNG!\nĐơn hàng đã được lưu ngầm vào Google Sheet của bạn.");
-        
-        cart = {}; // Làm rỗng giỏ hàng
-        updateCartFloat(); // Cập nhật lại số lượng giỏ hàng hiển thị thành (0)
-        closeModal(); // Đóng popup Form lại
-        document.getElementById("google-order-form").reset(); // Xóa sạch dữ liệu vừa gõ trong các ô nhập
-    })
-    .catch(error => {
-        alert("Có lỗi mạng xảy ra khi gửi đơn! Vui lòng thử lại.");
-        console.error("Lỗi chi tiết:", error);
-    });
-}
+            fetch(formUrl, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: searchParams.toString()
+            })
+            .then(() => {
+                alert("🎉 ĐẶT HÀNG THÀNH CÔNG!\nĐơn hàng đã được lưu vào Google Sheet của bạn.");
+                cart = {}; 
+                updateCartFloat(); 
+                closeModal(); 
+                document.getElementById("google-order-form").reset(); 
+            })
+            .catch(error => {
+                alert("Có lỗi mạng xảy ra khi gửi đơn! Vui lòng thử lại.");
+                console.error("Lỗi chi tiết:", error);
+            });
+        }
 
         // Khởi chạy ứng dụng lúc đầu
         renderFoods();
