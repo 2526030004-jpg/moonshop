@@ -247,40 +247,55 @@
         }
 
         // Hàm bí thuật: Gửi ngầm dữ liệu lên Google Form để chuyển tiếp dữ liệu sang Google Sheet
-        function submitToGoogleForm(e) {
-            e.preventDefault();
-            
-            const name = document.getElementById("cus-name").value;
-            const phone = document.getElementById("cus-phone").value;
-            const address = document.getElementById("cus-address").value;
-            const summary = getCartSummaryText();
-            const fullOrderDetails = summary.details + "\n" + summary.totalStr;
+        function submitToGoogleForm(e) // --- HÀM GỬI DỮ LIỆU ĐÃ ĐƯỢC FIX LỖI CHẶN KẾT NỐI ---
+function submitToGoogleForm(e) {
+    e.preventDefault(); // Ngăn chặn trang web bị tải lại trang tự động khi bấm nút
+    
+    // Thu thập chính xác dữ liệu từ các ô nhập liệu
+    const name = document.getElementById("cus-name").value.trim();
+    const phone = document.getElementById("cus-phone").value.trim();
+    const address = document.getElementById("cus-address").value.trim();
+    const summary = getCartSummaryText();
+    const fullOrderDetails = summary.details + "\n" + summary.totalStr;
 
-            // Tạo link API để submit ngầm sang Google Form
-            const formUrl = `https://docs.google.com/forms/d/e/${CONFIG.formId}/formResponse`;
-            
-            const formData = new FormData();
-            formData.append(CONFIG.entryName, name);
-            formData.append(CONFIG.entryPhone, phone);
-            formData.append(CONFIG.entryAddress, address);
-            formData.append(CONFIG.entryOrder, fullOrderDetails);
+    if(!name || !phone || !address) {
+        alert("Vui lòng điền đầy đủ các thông tin bắt buộc!");
+        return;
+    }
 
-            // Gửi bất đồng bộ ngầm ra ngoài
-            fetch(formUrl, {
-                method: "POST",
-                mode: "no-cors",
-                body: formData
-            }).then(() => {
-                alert("🎉 Đặt hàng thành công! Đơn hàng đã được lưu, hệ thống đang gửi thông báo qua Email của chủ shop.");
-                cart = {}; // Xóa sạch giỏ hàng khi mua xong
-                updateCartFloat();
-                closeModal();
-                document.getElementById("google-order-form").reset();
-            }).catch(error => {
-                alert("Có lỗi xảy ra, vui lòng liên hệ lại cửa hàng!");
-                console.error(error);
-            });
-        }
+    // Đường dẫn API nhận đơn chính thức của Google Form (đuôi phải là /formResponse)
+    const formUrl = `https://docs.google.com/forms/d/e/${CONFIG.formId}/formResponse`;
+    
+    // Giải pháp tối ưu: Đóng gói dữ liệu bằng URLSearchParams để vượt rào bảo mật
+    const searchParams = new URLSearchParams();
+    searchParams.append(CONFIG.entryName, name);
+    searchParams.append(CONFIG.entryPhone, phone);
+    searchParams.append(CONFIG.entryAddress, address);
+    searchParams.append(CONFIG.entryOrder, fullOrderDetails);
+
+    // Kích hoạt tiến trình gửi ngầm bất đồng bộ bằng Fetch API
+    fetch(formUrl, {
+        method: "POST",
+        mode: "no-cors", // Bắt buộc cài đặt chế độ này để bỏ qua lỗi CORS của trình duyệt
+        headers: {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        body: searchParams.toString()
+    })
+    .then(() => {
+        // Sau khi gửi thành công, thực hiện chuỗi hành động làm sạch giao diện:
+        alert("🎉 ĐẶT HÀNG THÀNH CÔNG!\nĐơn hàng đã được lưu ngầm vào Google Sheet của bạn.");
+        
+        cart = {}; // Làm rỗng giỏ hàng
+        updateCartFloat(); // Cập nhật lại số lượng giỏ hàng hiển thị thành (0)
+        closeModal(); // Đóng popup Form lại
+        document.getElementById("google-order-form").reset(); // Xóa sạch dữ liệu vừa gõ trong các ô nhập
+    })
+    .catch(error => {
+        alert("Có lỗi mạng xảy ra khi gửi đơn! Vui lòng thử lại.");
+        console.error("Lỗi chi tiết:", error);
+    });
+}
 
         // Khởi chạy ứng dụng lúc đầu
         renderFoods();
